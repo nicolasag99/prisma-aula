@@ -6,10 +6,107 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Aluno {
+  id String @id @default(uuid())
+  nome  String @db.VarChar(120)
+  email String @unique @db.Char(60)
+  senha String 
+  dtNascimento DateTime? @db.Date @map("dt_nascimento") //@map muda o nome da propriedade no banco de dados
+  formado Boolean @default(false)
+  rg Int?
+
+  dtCriacao DateTime @map("dt_criacao") @default(now())
+  dtAtualizacao DateTime @map("dt_atualizacao") @updatedAt
+
+  endereco Endereco?
+  avaliacoes Avaliacao[]
+  matriculas Matricula[]
+  
+
+  @@map("aluno") //@@map com dois arrobas, muda o nome da tablea no banco de dados (o padrão no bd é sempre minusculo)
+}
+
+//1-1
+//O aluno possui 1 endereço e o endereço está associado a 1 aluno
+
+model Endereco {
+  id String @id
+  rua String @db.VarChar(30)
+  bairro String @db.VarChar(30)
+  numero Int
+  cidade String @db.VarChar(50)
+
+  idAluno String @unique
+  aluno Aluno @relation(fields: [idAluno], references: [id])
+}
+
+
+//1-N
+//O aluno pode ter N avaliações, 1 avaliação é de apenas 1 aluno
+
+model Avaliacao {
+  id String @id @default(ulid())
+  disciplina String @db.VarChar(30)
+  nota Int @db.SmallInt
+
+  dtAvaliacao DateTime @default(now()) @map("dt_avaliacao")
+
+  idAluno String @map("id_aluno")
+  aluno Aluno @relation(fields: [idAluno], references: [id])
+
+
+  @@map("avalicao")
+}
+
+//N-N
+//O aluno pode se matricular em N cursos, e o curso pode ter matriculas de N aluno
+
+model Matricula {
+  idAluno String @map("id_aluno")
+  idCurso String @map("id_curso")
+
+  dataMatricula DateTime @default(now()) @map("dt_matricula")
+
+  aluno Aluno @relation(fields: [idAluno], references: [id])
+  curso Curso @relation(fields: [idCurso], references: [id])
+
+
+  @@id([idAluno, idCurso]) //PK compsta por dois campos, usada em tabelas com relacionamento de N-N 
+  @@map("matricula")
+}
+
+model Curso {
+  id String @id @default(uuid())
+  titulo String
+  ementa String
+  cargaHoraria Decimal @map("carga_horaria")
+  maxAlunos Int @default(30) @db.SmallInt @map("max_alunos")
+  status String
+
+  dtCriacao DateTime @map("dt_criacao") @default(now())
+  dtAtualizacao DateTime @map("dt_atualizacao") @updatedAt
+
+  matriculas Matricula[]
+
+  @@map("curso")
+}
+
+model Material {
+  id Int @id @default(autoincrement())
+  titulo String
+  descricao String
+  link String
+  disponivel Boolean
+
+  dtCriacao DateTime @map("dt_criacao") @default(now())
+  dtAtualizacao DateTime @map("dt_atualizacao") @updatedAt
+
+  @@map("material")
 }
